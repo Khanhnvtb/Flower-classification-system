@@ -2,8 +2,8 @@ import numpy as np
 import math
 
 
-def isExist(x, y, size_image):
-    if x < 0 or y == size_image or y < 0 or x == size_image:
+def isExist(x, y, row_size, col_size):
+    if x < 0 or y == col_size or y < 0 or x == row_size:
         return False
     return True
 
@@ -57,9 +57,6 @@ class Gradient:
                         gradient[row][col].angle = gradient_by_color.angle
         return np.array(gradient)
     
-    def __str__(self):
-        return f"{self.total_gradient}, {self.angle}"
-    
 
 class Feature:
     def __init__(self):
@@ -67,7 +64,7 @@ class Feature:
         self.shape = []
         self.structure = []
 
-    def getValue(g):
+    def getValue(self, g):
         return (g.total_gradient, g.angle)
 
     def calculateHistogram(self, gradient, orientations, pixel_per_cell, row_size, col_size):
@@ -116,7 +113,7 @@ class Feature:
     def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(3,3)):
         row_size, col_size = image.shape[0], image.shape[1]
         gradient = Gradient.calculateGradient(image, row_size, col_size)
-        histogram = self.calculateHistogram(gradient, orientations, pixel_per_cell)
+        histogram = self.calculateHistogram(gradient, orientations, pixel_per_cell, row_size, col_size)
         vector_features = []
         row_block_size = histogram.shape[0]
         col_block_size = histogram.shape[1]
