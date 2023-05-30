@@ -110,7 +110,7 @@ class Feature:
                     break
         return np.array(histogram)
 
-    def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(3,3)):
+    def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(2,2)):
         row_size, col_size = image.shape[0], image.shape[1]
         gradient = Gradient.calculateGradient(image, row_size, col_size)
         histogram = self.calculateHistogram(gradient, orientations, pixel_per_cell, row_size, col_size)
@@ -137,3 +137,59 @@ class Feature:
                     break
         vector_features = np.array(vector_features)
         return vector_features.reshape(-1)
+
+    def color_histogram(self, image, num_bins=16, block=(16,16)):
+        vector_features = []
+        num_block_row = int(image.shape[0] / block[0])
+        num_block_col = int(image.shape[1] / block[1])
+
+        for i in range(num_block_row):
+            for j in range(num_block_col):
+                block_image = image[i*block[0]: (i+1)*block[0], j*block[1]: (j+1)*block[1]]
+                histogram = self.calculateHistogramColor(block_image, num_bins)
+                vector_features.append(histogram)
+        vector_features = np.concatenate(vector_features)
+        return vector_features
+    
+    def calculateHistogramColor(self, image, num_bins):
+        histogram_of_red    = np.zeros(num_bins)
+        histogram_of_green  = np.zeros(num_bins)
+        histogram_of_blue   = np.zeros(num_bins)
+
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                histogram_of_red[int(image[i][j][0] / 256 * num_bins)] += 1
+                histogram_of_green[int(image[i][j][1] / 256 * num_bins)] += 1
+                histogram_of_blue[int(image[i][j][2] / 256 * num_bins)] += 1
+        
+        histogram = np.concatenate((histogram_of_red, histogram_of_green, histogram_of_blue))
+        histogram = histogram / np.sum(histogram)
+        return histogram
+    
+    def calculateHistogramColor2(self, image, num_bins):
+        histogram = np.zeros(num_bins * num_bins * num_bins)
+
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                index_of_red = int(image[i][j][0] / 256 * num_bins)
+                index_of_green = int(image[i][j][1] / 256 * num_bins)
+                index_of_blue = int(image[i][j][2] / 256 * num_bins)
+                histogram[index_of_red * num_bins * num_bins + index_of_green * num_bins + index_of_blue] += 1
+        
+        return histogram
+
+
+    def compare(self, feature1, feature2):
+        distance = 0
+        for i in range(len(feature1)):
+            distance += (feature1[i] - feature2[i]) * (feature1[i] - feature2[i])
+        distance = math.sqrt(distance)
+        return distance
+    
+    def compare2(self, feature1, feature2):
+        distance = 0
+        for i in range(len(feature1)):
+            distance += (abs(feature1[i] - feature2[i]))
+
+        return distance
+        
