@@ -1,2 +1,5 @@
 test/
 venv/
+test.ipynb/
+main/
+feature_selection.ipynb/
