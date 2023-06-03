@@ -225,8 +225,9 @@ class Feature:
         return lbp_values
     
     
-    def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(3,3)):
-        gradient = Gradient.calculateGradient(image)
+    def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(2,2)):
+        gray_image = self.rbgToGray(image)
+        gradient = Gradient.calculateGradient(gray_image)
         histogram = self.calculateHistogramOfGradient(gradient, orientations, pixel_per_cell)
         self.shape = self.calculateFeature(histogram, cells_per_block)
         return self.shape
@@ -240,7 +241,7 @@ class Feature:
         return self.texture
 
 
-    def color_histogram(self, image, num_bins=16, block=(32,32)):
+    def color_histogram(self, image, num_bins=16, block=(16,16)):
         vector_features = []
         num_block_row = int(image.shape[0] / block[0])
         num_block_col = int(image.shape[1] / block[1])
@@ -254,18 +255,20 @@ class Feature:
         return vector_features
     
     def calculateRGBHistogram(self, image, num_bins):
+        value_bin = 256 / num_bins
         histogram_of_red    = np.zeros(num_bins)
         histogram_of_green  = np.zeros(num_bins)
         histogram_of_blue   = np.zeros(num_bins)
 
         for i in range(image.shape[0]):
             for j in range(image.shape[1]):
-                histogram_of_red[int(image[i][j][0] / 256 * num_bins)] += 1
-                histogram_of_green[int(image[i][j][1] / 256 * num_bins)] += 1
-                histogram_of_blue[int(image[i][j][2] / 256 * num_bins)] += 1
+                histogram_of_red[int(image[i][j][0] / 256 * value_bin)] += 1
+                histogram_of_green[int(image[i][j][1] / 256 * value_bin)] += 1
+                histogram_of_blue[int(image[i][j][2] / 256 * value_bin)] += 1
         
         histogram = np.concatenate((histogram_of_red, histogram_of_green, histogram_of_blue))
         histogram = histogram / np.sum(histogram)
+        
         return histogram
     
     def calculateCombinedRGBHistogram(self, image, num_bins):
@@ -296,4 +299,3 @@ class Feature:
             distance += (abs(feature1[i] - feature2[i]))
 
         return distance
-        

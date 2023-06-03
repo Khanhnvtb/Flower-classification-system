@@ -44,7 +44,7 @@ class App(tk.Tk):
         self.image_input.configure(text="I have been clicked!")
 
     def open_file(self):
-        file = filedialog.askopenfile(initialdir=os.path.abspath(os.getcwd()), title="Select file", filetypes=(("png files", "*.png"), ("all files", "*.*")))
+        file = filedialog.askopenfile(initialdir=os.path.abspath(os.getcwd() + '/Flower/test'), title="Select file", filetypes=(("png files", "*.png"), ("all files", "*.*")))
         if file:
             print(file.name)
             self.label.configure(text="Hình ảnh đầu vào")
@@ -75,11 +75,24 @@ class App(tk.Tk):
 
         list_distance.sort(key=lambda x: x[1])
         list_distance = list_distance[:5]
-        list_label = [x[0] for x in list_distance]
-        # get element frequency max in list
-        label = max(set(list_label), key=list_label.count)
+        label_count = {}
+        for label, distance in list_distance:
+            if label in label_count:
+                label_count[label]['count'] += 1
+                if distance < label_count[label]['distance']:
+                    label_count[label]['distance'] = distance
+            else:
+                label_count[label] = {
+                    'count': 1,
+                    'distance': distance
+                }
+
+        label_count = sorted(label_count.items(), key=lambda x: (-x[1]['count'],x[1]['distance']))
+        # Kiểm tra xem nếu có nhiều hơn 1 nhãn xuất hiện cùng số lần, lấy nhãn có giá trị bé nhất
+        most_common_label = label_count[0][0]
+
         
-        self.result.configure(text="Kết quả dự đoán: " + label)
+        self.result.configure(text="Kết quả dự đoán: " + most_common_label)
         
 if __name__ == "__main__":
     app = App()
