@@ -22,6 +22,7 @@ for subfolder in subfolders:
         # Tính toán đặc trưng
         color_feature = feature.color_histogram(img)
         hog_feature = feature.hog(img)
+        lbp_feature = feature.lbp(img)
         data['color_feature'] = color_feature.tolist()
         data['hog_feature'] = hog_feature.tolist()
         feature_data.append(data)
@@ -30,5 +31,5 @@ data = {}
 data['data'] = feature_data
 
 # Lưu biến feature_data ra file JSON
-with open('data.json', 'w') as f:
+with open('data3.json', 'w', encoding='utf-8') as f:
     json.dump(data, f)
