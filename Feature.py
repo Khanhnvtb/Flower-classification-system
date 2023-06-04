@@ -224,15 +224,76 @@ class Feature:
                 lbp_values[row][col] = lbp_value
         return lbp_values
     
+    
     def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(3,3)):
         gradient = Gradient.calculateGradient(image)
         histogram = self.calculateHistogramOfGradient(gradient, orientations, pixel_per_cell)
         self.shape = self.calculateFeature(histogram, cells_per_block)
         return self.shape
     
+
     def lbp(self, image, orientations=8, pixel_per_cell=(8,8), cells_per_block=(3,3)):
         gray_image = self.rbgToGray(image)
         lbp_values = self.calculateLbp(gray_image)
         histogram = self.calculateHistogramOfLbp(lbp_values, orientations, pixel_per_cell)
         self.texture = self.calculateFeature(histogram, cells_per_block)
         return self.texture
+
+
+    def color_histogram(self, image, num_bins=16, block=(32,32)):
+        vector_features = []
+        num_block_row = int(image.shape[0] / block[0])
+        num_block_col = int(image.shape[1] / block[1])
+
+        for i in range(num_block_row):
+            for j in range(num_block_col):
+                block_image = image[i*block[0]: (i+1)*block[0], j*block[1]: (j+1)*block[1]]
+                histogram = self.calculateRGBHistogram(block_image, num_bins)
+                vector_features.append(histogram)
+        vector_features = np.concatenate(vector_features)
+        return vector_features
+    
+    def calculateRGBHistogram(self, image, num_bins):
+        histogram_of_red    = np.zeros(num_bins)
+        histogram_of_green  = np.zeros(num_bins)
+        histogram_of_blue   = np.zeros(num_bins)
+
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                histogram_of_red[int(image[i][j][0] / 256 * num_bins)] += 1
+                histogram_of_green[int(image[i][j][1] / 256 * num_bins)] += 1
+                histogram_of_blue[int(image[i][j][2] / 256 * num_bins)] += 1
+        
+        histogram = np.concatenate((histogram_of_red, histogram_of_green, histogram_of_blue))
+        histogram = histogram / np.sum(histogram)
+        return histogram
+    
+    def calculateCombinedRGBHistogram(self, image, num_bins):
+        histogram = np.zeros(num_bins * num_bins * num_bins)
+
+        for i in range(image.shape[0]):
+            for j in range(image.shape[1]):
+                index_of_red = int(image[i][j][0] / 256 * num_bins)
+                index_of_green = int(image[i][j][1] / 256 * num_bins)
+                index_of_blue = int(image[i][j][2] / 256 * num_bins)
+                histogram[index_of_red * num_bins * num_bins + index_of_green * num_bins + index_of_blue] += 1
+        
+        histogram = histogram / np.sum(histogram)
+        return histogram
+
+
+    def distanceEuclidean(self, feature1, feature2):
+        distance = 0
+        for i in range(len(feature1)):
+            distance += (feature1[i] - feature2[i]) * (feature1[i] - feature2[i])
+        distance = math.sqrt(distance)
+        return distance
+    
+
+    def distanceManhattan(self, feature1, feature2):
+        distance = 0
+        for i in range(len(feature1)):
+            distance += (abs(feature1[i] - feature2[i]))
+
+        return distance
+        
