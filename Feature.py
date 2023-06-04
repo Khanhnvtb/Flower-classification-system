@@ -2,14 +2,6 @@ import numpy as np
 import math
 
 
-def isExist(x, y, row_size, col_size):
-    if x < 0 or y == col_size or y < 0 or x == row_size:
-        return False
-    return True
-
-def getValue(g):
-    return (g.total_gradient, g.angle) 
-
 class Gradient:
     def __init__(self, left=0, right=0, top=0, bottom=0):
         self.Gx = right - left
@@ -48,19 +40,19 @@ class Gradient:
                 #     1: 'green',
                 #     2: 'blue',
                 # }
-                    if isExist(row_left, col_left, row_size, col_size):
+                    if Gradient.isExist(row_left, col_left, row_size, col_size):
                         left = image[row_left][col_left][i].astype(np.int32)
                     else:
                         left = 0
-                    if isExist(row_right, col_right, row_size, col_size):
+                    if Gradient.isExist(row_right, col_right, row_size, col_size):
                         right = image[row_right][col_right][i].astype(np.int32)
                     else:
                         right = 0
-                    if isExist(row_top, col_top, row_size, col_size):
+                    if Gradient.isExist(row_top, col_top, row_size, col_size):
                         top = image[row_top][col_top][i].astype(np.int32)
                     else:
                         top = 0
-                    if isExist(row_bottom, col_bottom, row_size, col_size):
+                    if Gradient.isExist(row_bottom, col_bottom, row_size, col_size):
                         bottom = image[row_bottom][col_bottom][i].astype(np.int32)
                     else:
                         bottom = 0  
@@ -70,6 +62,13 @@ class Gradient:
                         gradient[row][col].angle = gradient_by_color.angle
         return np.array(gradient)
     
+
+    def isExist(x, y, row_size, col_size):
+        if x < 0 or y == col_size or y < 0 or x == row_size:
+            return False
+        return True
+
+
 
 class Feature:
     def __init__(self):
@@ -93,6 +92,7 @@ class Feature:
                 # Grayscale = 0.3*R+0.59*G+ 0.11*B
                 gray_image[row][col] = int(image[row][col][0] * 0.3 + image[row][col][1] * 0.59 + image[row][col][2] * 0.11)
         return gray_image
+
 
     def calculateFeature(self, histogram, cells_per_block):
         vector_features = []
@@ -119,6 +119,7 @@ class Feature:
         vector_features = np.array(vector_features)
         return vector_features.reshape(-1)
 
+
     def calculateHistogramOfGradient(self, gradient, orientations, pixel_per_cell):
         row_size, col_size = gradient.shape[0], gradient.shape[1]
         histogram = []
@@ -131,7 +132,7 @@ class Feature:
             # chuyển thành 1 chiều
             cell = np.ravel(cell)
             # chuyển thành mảng chứa 1 mảng total_gradient và 1 mảng chứa angle
-            vfunc = np.vectorize(getValue)
+            vfunc = np.vectorize(self.getValue)
             cell = vfunc(cell)
             for i in range(len(cell[0])):
                 total_gradient = cell[0][i]
@@ -164,7 +165,7 @@ class Feature:
                 else:
                     break
         return np.array(histogram)
-    
+
     def calculateHistogramOfLbp(self, lbp_values, orientations, pixel_per_cell):
         row_size, col_size = lbp_values.shape[0], lbp_values.shape[1]
         histogram = []
@@ -172,6 +173,14 @@ class Feature:
         row_start, col_start, row_end, col_end = 0, 0, pixel_per_cell[0], pixel_per_cell[1]
         max_lbp_value_per_orientations = 256 / orientations
         while(True):
+            block = histogram[row_cell_start:row_cell_end, col_cell_start:col_cell_end]
+            k = math.sqrt(np.sum(block * block))
+            if k != 0:
+                block = block / k
+            vector_features.append(block)
+            if col_cell_end < col_block_size:
+                col_cell_start += 1
+                col_cell_end += 1
             histogram_of_cell = [0 for i in range(orientations)]
             cell = lbp_values[row_start:row_end, col_start:col_end]
             # chuyển thành 1 chiều
@@ -195,6 +204,11 @@ class Feature:
                 col_start = col_end
                 col_end = col_start + pixel_per_cell[1]
             else:
+                if row_cell_end < row_block_size:
+                    row_cell_start += 1
+                    row_cell_end += 1
+                    col_cell_start = 0
+                    col_cell_end = cells_per_block[1]
                 histogram.append(histogram_of_row)
                 histogram_of_row = []
                 if row_end < row_size:
@@ -204,8 +218,9 @@ class Feature:
                     col_end = pixel_per_cell[1]
                 else:
                     break
-        return np.array(histogram)
-    
+        vector_features = np.array(vector_features)
+        return vector_features.reshape(-1)
+
     def calculateLbp(self, gray_image):
         d_row = [0, -1, -1, -1, 0, 1, 1, 1]
         d_col = [1, 1, 0, -1, -1, -1, 0, 1]
@@ -224,13 +239,15 @@ class Feature:
                 lbp_values[row][col] = lbp_value
         return lbp_values
     
-    
-    def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(3,3)):
-        gradient = Gradient.calculateGradient(image)
+    def getValue(g):
+        return (g.total_gradient, g.angle) 
+
+    def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(2,2)):
+        gray_image = self.rbgToGray(image)
+        gradient = Gradient.calculateGradient(gray_image)
         histogram = self.calculateHistogramOfGradient(gradient, orientations, pixel_per_cell)
         self.shape = self.calculateFeature(histogram, cells_per_block)
         return self.shape
-    
 
     def lbp(self, image, orientations=8, pixel_per_cell=(8,8), cells_per_block=(3,3)):
         gray_image = self.rbgToGray(image)
@@ -239,8 +256,7 @@ class Feature:
         self.texture = self.calculateFeature(histogram, cells_per_block)
         return self.texture
 
-
-    def color_histogram(self, image, num_bins=16, block=(32,32)):
+    def color_histogram(self, image, num_bins=16, block=(16,16)):
         vector_features = []
         num_block_row = int(image.shape[0] / block[0])
         num_block_col = int(image.shape[1] / block[1])
@@ -254,18 +270,21 @@ class Feature:
         return vector_features
     
     def calculateRGBHistogram(self, image, num_bins):
+        value_bin = 256 / num_bins
         histogram_of_red    = np.zeros(num_bins)
         histogram_of_green  = np.zeros(num_bins)
         histogram_of_blue   = np.zeros(num_bins)
 
         for i in range(image.shape[0]):
             for j in range(image.shape[1]):
-                histogram_of_red[int(image[i][j][0] / 256 * num_bins)] += 1
-                histogram_of_green[int(image[i][j][1] / 256 * num_bins)] += 1
-                histogram_of_blue[int(image[i][j][2] / 256 * num_bins)] += 1
+                histogram_of_red[int(image[i][j][0] / 256 * value_bin)] += 1
+                histogram_of_green[int(image[i][j][1] / 256 * value_bin)] += 1
+                histogram_of_blue[int(image[i][j][2] / 256 * value_bin)] += 1
         
         histogram = np.concatenate((histogram_of_red, histogram_of_green, histogram_of_blue))
-        histogram = histogram / np.sum(histogram)
+        # histogram = histogram / np.sum(histogram)
+        histogram = histogram / np.linalg.norm(histogram)
+        
         return histogram
     
     def calculateCombinedRGBHistogram(self, image, num_bins):
@@ -278,7 +297,7 @@ class Feature:
                 index_of_blue = int(image[i][j][2] / 256 * num_bins)
                 histogram[index_of_red * num_bins * num_bins + index_of_green * num_bins + index_of_blue] += 1
         
-        histogram = histogram / np.sum(histogram)
+        histogram = histogram / np.linalg.norm(histogram)
         return histogram
 
 
@@ -288,12 +307,3 @@ class Feature:
             distance += (feature1[i] - feature2[i]) * (feature1[i] - feature2[i])
         distance = math.sqrt(distance)
         return distance
-    
-
-    def distanceManhattan(self, feature1, feature2):
-        distance = 0
-        for i in range(len(feature1)):
-            distance += (abs(feature1[i] - feature2[i]))
-
-        return distance
-        

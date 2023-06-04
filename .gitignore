@@ -1,4 +1,11 @@
+<<<<<<< HEAD
 venv/
 test.ipynb/
 main/
 feature_selection.ipynb/
+=======
+/test/
+venv/
+test2/
+.vscode/
+>>>>>>> 2c3437176f6fc32d91667af34e60595098bbfa66

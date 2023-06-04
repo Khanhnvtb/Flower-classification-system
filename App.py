@@ -18,12 +18,12 @@ class App(tk.Tk):
         y = (screen_height / 2) - (self.height / 2)
         self.geometry('{}x{}+{}+{}'.format(self.width, self.height, int(x), int(y)))
 
-        self.open_button = tk.Button(self, text="Mở ảnh", command=self.open_file)
+        self.open_button = tk.Button(self, text="Chọn ảnh", command=self.open_file)
         self.open_button.pack(pady=15, ipadx=10,)
         self.label = tk.Label(self)
         self.label.pack(pady=10)
         
-        self.image_input = tk.Label(self)
+        self.image_input = tk.Label(self,)
         self.image_input.pack()
 
         self.result = tk.Label(self)
@@ -34,7 +34,7 @@ class App(tk.Tk):
         self.load_data()
 
     def load_data(self):
-        with open('data.json', 'r') as f:
+        with open('data.json', 'r',encoding='utf-8') as f:
             data = json.load(f)
             self.data = data['data']
 
@@ -43,7 +43,7 @@ class App(tk.Tk):
         self.image_input.configure(text="I have been clicked!")
 
     def open_file(self):
-        file = filedialog.askopenfile(initialdir=os.path.abspath(os.getcwd()), title="Select file", filetypes=(("png files", "*.png"), ("all files", "*.*")))
+        file = filedialog.askopenfile(initialdir=os.path.abspath(os.getcwd() + '/Flower/test'), title="Select file", filetypes=(("png files", "*.png"), ("jpg files", "*.jpg")))
         if file:
             print(file.name)
             self.label.configure(text="Hình ảnh đầu vào")
@@ -60,7 +60,8 @@ class App(tk.Tk):
         hog_feature_of_test = self.feature.hog(image)
 
         list_distance = []
-
+        list_color_distance = []
+        list_hog_distance = []
         for data in self.data:
             label = data['label']
             color_feature_of_train = np.array(data['color_feature'])
@@ -70,16 +71,44 @@ class App(tk.Tk):
             distance_hog = self.feature.distanceEuclidean(hog_feature_of_test, hog_feature_of_train)
             distance = distance_color + distance_hog
             list_distance.append((label, distance))
-
+            
+            list_color_distance.append(distance_color)
+            list_hog_distance.append(distance_hog)
+            
 
         list_distance.sort(key=lambda x: x[1])
+
+
+
+        if list_distance[5][1] > 21:
+            self.result.configure(text="Không xác định được loại hoa")
+            return
+
         list_distance = list_distance[:5]
-        list_label = [x[0] for x in list_distance]
-        # get element frequency max in list
-        label = max(set(list_label), key=list_label.count)
+        label_count = {}
+        for label, distance in list_distance:
+            if label in label_count:
+                label_count[label]['count'] += 1
+                if distance < label_count[label]['distance']:
+                    label_count[label]['distance'] = distance
+            else:
+                label_count[label] = {
+                    'count': 1,
+                    'distance': distance
+                }
         
-        self.result.configure(text="Kết quả dự đoán: " + label)
+        label_count = sorted(label_count.items(), key=lambda x: (-x[1]['count'],x[1]['distance']))
+
+        most_common_label = label_count[0][0]
         
+        # list_color_distance.sort()
+        # list_hog_distance.sort()
+        # print(list_color_distance[-1] - list_color_distance[0], list_color_distance[-1], list_color_distance[0])
+        # print(list_hog_distance[-1] - list_hog_distance[0], list_hog_distance[-1], list_hog_distance[0])
+        
+        self.result.configure(text="Kết quả dự đoán: " + most_common_label)
+        
+
 if __name__ == "__main__":
     app = App()
     app.mainloop()
