@@ -173,14 +173,6 @@ class Feature:
         row_start, col_start, row_end, col_end = 0, 0, pixel_per_cell[0], pixel_per_cell[1]
         max_lbp_value_per_orientations = 256 / orientations
         while(True):
-            block = histogram[row_cell_start:row_cell_end, col_cell_start:col_cell_end]
-            k = math.sqrt(np.sum(block * block))
-            if k != 0:
-                block = block / k
-            vector_features.append(block)
-            if col_cell_end < col_block_size:
-                col_cell_start += 1
-                col_cell_end += 1
             histogram_of_cell = [0 for i in range(orientations)]
             cell = lbp_values[row_start:row_end, col_start:col_end]
             # chuyển thành 1 chiều
@@ -204,11 +196,6 @@ class Feature:
                 col_start = col_end
                 col_end = col_start + pixel_per_cell[1]
             else:
-                if row_cell_end < row_block_size:
-                    row_cell_start += 1
-                    row_cell_end += 1
-                    col_cell_start = 0
-                    col_cell_end = cells_per_block[1]
                 histogram.append(histogram_of_row)
                 histogram_of_row = []
                 if row_end < row_size:
@@ -218,8 +205,7 @@ class Feature:
                     col_end = pixel_per_cell[1]
                 else:
                     break
-        vector_features = np.array(vector_features)
-        return vector_features.reshape(-1)
+        return np.array(histogram)
 
     def calculateLbp(self, gray_image):
         d_row = [0, -1, -1, -1, 0, 1, 1, 1]
@@ -232,14 +218,14 @@ class Feature:
                     lbp_value = 0
                     curr_row = row + d_row[i]
                     curr_col = col + d_col[i]
-                    if isExist(curr_row, curr_col, row_size, col_size):
+                    if Gradient.isExist(curr_row, curr_col, row_size, col_size):
                         lbp_value += np.ubyte(math.pow(2, i)) if gray_image[curr_row][curr_col] > gray_image[row][col] else np.ubyte(0)
                     else:
                         lbp_value += np.ubyte(0)
                 lbp_values[row][col] = lbp_value
         return lbp_values
     
-    def getValue(g):
+    def getValue(self, g):
         return (g.total_gradient, g.angle) 
 
     def hog(self, image, orientations=9, pixel_per_cell=(8,8), cells_per_block=(2,2)):

@@ -60,8 +60,6 @@ class App(tk.Tk):
         hog_feature_of_test = self.feature.hog(image)
 
         list_distance = []
-        list_color_distance = []
-        list_hog_distance = []
         for data in self.data:
             label = data['label']
             color_feature_of_train = np.array(data['color_feature'])
@@ -72,15 +70,11 @@ class App(tk.Tk):
             distance = distance_color + distance_hog
             list_distance.append((label, distance))
             
-            list_color_distance.append(distance_color)
-            list_hog_distance.append(distance_hog)
-            
 
         list_distance.sort(key=lambda x: x[1])
 
 
-
-        if list_distance[5][1] > 21:
+        if list_distance[4][1] > 21:
             self.result.configure(text="Không xác định được loại hoa")
             return
 
